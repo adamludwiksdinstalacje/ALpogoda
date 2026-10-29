@@ -1,0 +1,461 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Średnia prognoza pogody</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Układ: jedna kolumna, karty z zaokrąglonymi rogami, duży nagłówek, paski segmentowe i przełączniki w stylu Apple */
+:root{
+  color-scheme: light;
+  --bg:#f2f2f7; --card:#ffffff; --fg:#000000; --fg2:rgba(60,60,67,.6); --fg3:rgba(60,60,67,.3);
+  --sep:rgba(60,60,67,.18); --fill:rgba(118,118,128,.12); --tile:#f2f2f7;
+  --blue:#007aff; --green:#34c759; --orange:#ff9500; --red:#ff3b30; --gray:#8e8e93;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 14px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#000000; --card:#1c1c1e; --fg:#ffffff; --fg2:rgba(235,235,245,.6); --fg3:rgba(235,235,245,.3);
+    --sep:rgba(84,84,88,.65); --fill:rgba(120,120,128,.24); --tile:#2c2c2e;
+    --blue:#0a84ff; --green:#30d158; --orange:#ff9f0a; --red:#ff453a; --gray:#8e8e93;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#000000; --card:#1c1c1e; --fg:#ffffff; --fg2:rgba(235,235,245,.6); --fg3:rgba(235,235,245,.3);
+  --sep:rgba(84,84,88,.65); --fill:rgba(120,120,128,.24); --tile:#2c2c2e;
+  --blue:#0a84ff; --green:#30d158; --orange:#ff9f0a; --red:#ff453a; --gray:#8e8e93;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  font-size:15px; line-height:1.4; -webkit-font-smoothing:antialiased;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:8px 32px;
+}
+.wrap{max-width:720px;margin:0 auto;min-width:0}
+h1{font-size:34px;font-weight:700;letter-spacing:-.022em;line-height:1.1;margin:10px 0 4px;text-align:center}
+.sub{color:var(--fg2);font-size:15px;margin:0 0 18px;text-align:center}
+.card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:17px;font-weight:600;letter-spacing:-.01em;margin:0 0 12px}
+.label{font-size:13px;color:var(--fg2);text-transform:uppercase;letter-spacing:.02em;margin:0 0 8px 2px}
+
+.searchrow{display:flex;flex-wrap:wrap;gap:10px}
+.search{flex:1 1 220px;display:flex;align-items:center;background:var(--fill);border-radius:12px;padding:0 12px;height:44px;min-width:0}
+.search input{flex:1;min-width:0;height:100%;border:0;background:transparent;font:inherit;font-size:17px;color:var(--fg);outline:none}
+.search input::placeholder{color:var(--fg3)}
+.btn{height:44px;padding:0 18px;border:0;border-radius:12px;background:var(--blue);color:#fff;font:inherit;font-size:17px;font-weight:600;cursor:pointer}
+.btn:active{opacity:.7}
+.places{margin-top:6px}
+.place{display:block;width:100%;background:transparent;border:0;border-top:.5px solid var(--sep);color:var(--fg);font:inherit;font-size:16px;text-align:left;padding:12px 4px;cursor:pointer}
+.place:first-child{border-top:0}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{font:inherit;font-size:14px;padding:7px 13px;border-radius:999px;border:0;background:var(--fill);color:var(--fg);cursor:pointer;min-height:34px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff}
+
+.rows{border-radius:12px;overflow:hidden}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--tile);min-height:48px}
+.row + .row{border-top:.5px solid var(--sep)}
+.row span{font-size:16px}
+input[type=date]{font:inherit;font-size:16px;color:var(--blue);background:transparent;border:0;padding:6px 4px;min-height:36px;min-width:0}
+.seg{display:flex;background:var(--fill);border-radius:9px;padding:2px;margin-top:12px}
+.seg button{flex:1;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;font-weight:600;padding:7px 0;border-radius:7px;cursor:pointer;min-height:32px}
+.seg button[aria-pressed="true"]{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.hint{font-size:13px;color:var(--fg2);margin:10px 2px 0;min-height:1em}
+.hint.err{color:var(--red)}
+
+.place-head h2{font-size:24px;font-weight:700;letter-spacing:-.02em;margin:0 0 2px}
+.place-head p{margin:0;color:var(--fg2);font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+.stat{background:var(--tile);border-radius:12px;padding:12px 14px;min-width:0}
+.stat span{display:block;font-size:13px;color:var(--fg2);margin-bottom:4px}
+.stat b{display:block;font-size:24px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat small{font-size:13px;color:var(--fg2)}
+
+.tbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+th{font-size:12px;font-weight:600;color:var(--fg2);text-transform:uppercase;letter-spacing:.03em;text-align:right;padding:8px 6px;border-bottom:.5px solid var(--sep);white-space:nowrap}
+td{padding:11px 6px;border-bottom:.5px solid var(--sep);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+tfoot td{font-weight:600;border-bottom:0}
+.pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;color:#fff}
+.p-dry{background:var(--gray)} .p-ok{background:var(--green)} .p-mid{background:var(--orange)} .p-bad{background:var(--red)}
+
+.chart{width:100%;overflow:hidden}
+.chart svg{display:block;width:100%;height:auto}
+.chart text{fill:var(--fg2);font-size:11px}
+.chart .bar{fill:var(--blue)}
+.chart .whisk{stroke:var(--fg2);stroke-width:1}
+.chart .grid{stroke:var(--sep);stroke-width:.5}
+
+iframe{width:100%;height:260px;border:0;border-radius:12px;background:var(--fill)}
+.links{margin:10px 0 0;display:flex;flex-wrap:wrap;gap:14px}
+.links a{color:var(--blue);text-decoration:none;font-size:14px}
+.note{font-size:13px;color:var(--fg2);line-height:1.5;margin:10px 2px 0}
+.sig{display:flex;width:max-content;max-width:100%;align-items:center;gap:6px;font-size:13px;color:var(--fg2);background:var(--fill);padding:5px 12px;border-radius:999px;margin:0 auto 14px}
+.sig b{color:var(--fg);font-weight:600}
+.msg{color:var(--fg2)}
+.err{color:var(--red)}
+[hidden]{display:none!important}
+</style>
+
+<div class="wrap">
+  <h1>Średnia prognoza pogody</h1>
+  <p class="sig">Made by <b>Adam Ludwik</b> ✦</p>
+  <p class="sub">Średnia z kilku modeli numerycznych, z mapą i szczegółami opadów.</p>
+
+  <div class="card">
+    <p class="label">Miejscowość</p>
+    <form id="f" class="searchrow" autocomplete="off">
+      <label class="search">
+        <input type="text" id="q" placeholder="np. Kraków, Zakopane, Terka" aria-label="Miejscowość" enterkeyhint="search" required>
+      </label>
+      <button class="btn" type="submit">Pokaż</button>
+    </form>
+    <div id="places" class="places"></div>
+  </div>
+
+  <div class="card">
+    <p class="label">Zakres dat</p>
+    <div class="rows">
+      <div class="row"><span>Od</span><input type="date" id="d1" aria-label="Data początkowa"></div>
+      <div class="row"><span>Do</span><input type="date" id="d2" aria-label="Data końcowa"></div>
+    </div>
+    <div class="seg" id="seg" role="group" aria-label="Szybki wybór długości">
+      <button type="button" data-days="3" aria-pressed="false">3 dni</button>
+      <button type="button" data-days="7" aria-pressed="true">7 dni</button>
+      <button type="button" data-days="16" aria-pressed="false">16 dni</button>
+    </div>
+    <p id="hint" class="hint"></p>
+  </div>
+
+  <div class="card">
+    <p class="label">Modele</p>
+    <div class="chips" id="models"></div>
+  </div>
+
+  <div id="out"><div class="card"><p class="msg">Wpisz miejscowość, aby zobaczyć prognozę.</p></div></div>
+
+  <div class="card" id="mapCard" hidden>
+    <h2>Mapa</h2>
+    <iframe id="map" title="Mapa lokalizacji" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    <div class="links">
+      <a id="lnkRadar" target="_blank" rel="noopener">Radar opadów (Windy)</a>
+      <a href="https://meteo.imgw.pl/" target="_blank" rel="noopener">Radar i prognozy IMGW</a>
+    </div>
+  </div>
+
+  <p class="note" id="note"></p>
+</div>
+
+<script>
+const MODELS = [
+  {id:'icon_seamless',        name:'DWD ICON'},
+  {id:'ecmwf_ifs025',         name:'ECMWF IFS'},
+  {id:'gfs_seamless',         name:'NOAA GFS'},
+  {id:'meteofrance_seamless', name:'Météo-France'},
+  {id:'ukmo_seamless',        name:'UK Met Office'},
+  {id:'metno_seamless',       name:'MET Norway (Yr)'}
+];
+const DAILY  = ['temperature_2m_max','temperature_2m_min','precipitation_sum','precipitation_hours','precipitation_probability_max','wind_speed_10m_max'];
+const HOURLY = ['precipitation','precipitation_probability'];
+const MAX_DAYS = 16;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const isNum = x => typeof x === 'number' && isFinite(x);
+const mean = a => { const v = a.filter(isNum); return v.length ? v.reduce((s,x)=>s+x,0)/v.length : null; };
+const sum  = a => { const v = a.filter(isNum); return v.length ? v.reduce((s,x)=>s+x,0) : null; };
+const fmt = (x,d=0) => isNum(x) ? x.toFixed(d).replace('.',',') : '–';
+
+// Open-Meteo przy wielu modelach dopisuje do nazwy zmiennej nazwę modelu
+const pick = (obj, base, m) => {
+  if (!obj) return null;
+  const k = `${base}_${m}`;
+  return k in obj ? obj[k] : (base in obj ? obj[base] : null);
+};
+const modelVal = (obj, base, m, i) => { const a = pick(obj, base, m); return a ? a[i] : null; };
+const at = (obj, base, i, models) => models.map(m => modelVal(obj, base, m, i)).filter(isNum);
+
+// Orientacyjne progi dla dobowej sumy opadów (konwencja tej strony)
+const cat = s => !isNum(s) ? '–' : s < 0.1 ? 'brak' : s < 1 ? 'śladowe' : s < 5 ? 'słabe' : s < 10 ? 'umiarkowane' : 'silne';
+const catPill = s => !isNum(s) ? 'p-mid' : s < 1 ? 'p-dry' : s < 5 ? 'p-ok' : s < 10 ? 'p-mid' : 'p-bad';
+
+// Daty: wszystko w czasie lokalnym, bez konwersji przez UTC
+const parseISO = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const toISO = dt => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+const addDays = (dt,k) => new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()+k);
+const dayCount = (a,b) => Math.round((b - a) / 86400000) + 1;
+const TODAY = (() => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); })();
+const LAST = addDays(TODAY, MAX_DAYS - 1);
+const dayFmt = new Intl.DateTimeFormat('pl-PL', {weekday:'short', day:'numeric', month:'numeric'});
+const dayLabel = iso => dayFmt.format(parseISO(iso));
+const hourLabel = t => `${t.slice(8,10)}.${t.slice(5,7)} ${t.slice(11,16)}`;
+
+const active = new Set(MODELS.map(m => m.id));
+const modelName = id => (MODELS.find(m => m.id === id) || {name:id}).name;
+let lastPlace = null;
+
+// Modele
+$('models').innerHTML = MODELS.map(m =>
+  `<button type="button" class="chip" data-id="${m.id}" aria-pressed="true">${esc(m.name)}</button>`).join('');
+$('models').addEventListener('click', e => {
+  const b = e.target.closest('button[data-id]');
+  if (!b) return;
+  const on = !active.has(b.dataset.id);
+  on ? active.add(b.dataset.id) : active.delete(b.dataset.id);
+  b.setAttribute('aria-pressed', String(on));
+  if (lastPlace) loadForecast(lastPlace);
+});
+
+// Zakres dat
+function initDates(){
+  $('d1').min = $('d2').min = toISO(TODAY);
+  $('d1').max = $('d2').max = toISO(LAST);
+  $('d1').value = toISO(TODAY);
+  $('d2').value = toISO(addDays(TODAY, 6));
+  syncPreset();
+}
+function getRange(){
+  const s = $('d1').value, e = $('d2').value;
+  if (!s || !e) return {error:'Wybierz obie daty.'};
+  const sd = parseISO(s), ed = parseISO(e);
+  if (ed < sd) return {error:'Data końcowa jest wcześniejsza niż początkowa.'};
+  if (sd < TODAY) return {error:'Prognoza jest dostępna od dzisiaj.'};
+  if (ed > LAST) return {error:`Prognoza sięga najwyżej ${MAX_DAYS} dni w przód.`};
+  return {start: s, end: e, n: dayCount(sd, ed)};
+}
+function syncPreset(){
+  const r = getRange();
+  document.querySelectorAll('#seg button').forEach(b =>
+    b.setAttribute('aria-pressed', String(!r.error && r.n === +b.dataset.days)));
+}
+function onRangeChanged(){
+  syncPreset();
+  const r = getRange();
+  $('hint').textContent = r.error || '';
+  $('hint').classList.toggle('err', !!r.error);
+  if (!r.error && lastPlace) loadForecast(lastPlace);
+}
+$('d1').addEventListener('change', onRangeChanged);
+$('d2').addEventListener('change', onRangeChanged);
+$('seg').addEventListener('click', e => {
+  const b = e.target.closest('button[data-days]');
+  if (!b) return;
+  const k = +b.dataset.days;
+  const sd = $('d1').value ? parseISO($('d1').value) : TODAY;
+  let ed = addDays(sd, k - 1);
+  if (ed > LAST) ed = LAST;
+  $('d2').value = toISO(ed);
+  onRangeChanged();
+});
+
+// Wyszukiwanie miejscowości
+async function search(name){
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=10&language=pl&countryCode=PL&format=json`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('Nie udało się wyszukać miejscowości.');
+  const j = await r.json();
+  return j.results || [];
+}
+function updateMap(p){
+  const lat = p.latitude, lon = p.longitude;
+  $('map').src = `https://www.openstreetmap.org/export/embed.html?bbox=${(lon-0.08).toFixed(4)},${(lat-0.05).toFixed(4)},${(lon+0.08).toFixed(4)},${(lat+0.05).toFixed(4)}&layer=mapnik&marker=${lat.toFixed(4)},${lon.toFixed(4)}`;
+  $('lnkRadar').href = `https://www.windy.com/?rain,${lat.toFixed(3)},${lon.toFixed(3)},8`;
+  $('mapCard').hidden = false;
+}
+function pickPlace(p){
+  lastPlace = p;
+  $('places').innerHTML = '';
+  updateMap(p);
+  loadForecast(p);
+}
+$('places').addEventListener('click', e => {
+  const b = e.target.closest('button.place');
+  if (b && b.dataset.i != null) pickPlace(window._results[+b.dataset.i]);
+});
+$('f').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = $('q').value.trim();
+  if (!q) return;
+  $('places').innerHTML = '';
+  $('out').innerHTML = '<div class="card"><p class="msg">Szukam miejscowości…</p></div>';
+  const coords = q.match(/^(-?\d+[.,]\d+)\s*,\s*(-?\d+[.,]\d+)$/);
+  if (coords) {
+    return pickPlace({name: `${coords[1]}, ${coords[2]}`, latitude: parseFloat(coords[1].replace(',','.')), longitude: parseFloat(coords[2].replace(',','.')), admin1: ''});
+  }
+  try {
+    const res = await search(q);
+    if (!res.length) {
+      $('out').innerHTML = '<div class="card"><p class="err">Nie znaleziono miejscowości. Spróbuj innej pisowni albo wpisz współrzędne, np. 49.47,22.33.</p></div>';
+      return;
+    }
+    if (res.length > 1) {
+      window._results = res;
+      $('out').innerHTML = '<div class="card"><p class="msg">Wybierz właściwą miejscowość.</p></div>';
+      $('places').innerHTML = res.map((p,i) =>
+        `<button type="button" class="place" data-i="${i}">${esc(p.name)}${p.admin2?', '+esc(p.admin2):''}${p.admin1?' ('+esc(p.admin1)+')':''}</button>`).join('');
+      return;
+    }
+    pickPlace(res[0]);
+  } catch (err) {
+    $('out').innerHTML = `<div class="card"><p class="err">${esc(err.message)}</p></div>`;
+  }
+});
+
+// Pobieranie prognoz
+async function loadForecast(p){
+  const models = [...active];
+  const r = getRange();
+  if (r.error) { $('out').innerHTML = `<div class="card"><p class="err">${esc(r.error)}</p></div>`; return; }
+  if (!models.length) { $('out').innerHTML = '<div class="card"><p class="err">Zaznacz przynajmniej jeden model.</p></div>'; return; }
+  $('out').innerHTML = '<div class="card"><p class="msg">Pobieram prognozy z kilku modeli…</p></div>';
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}` +
+    `&daily=${DAILY.join(',')}&hourly=${HOURLY.join(',')}&models=${models.join(',')}` +
+    `&timezone=Europe/Warsaw&start_date=${r.start}&end_date=${r.end}`;
+  try {
+    const res = await fetch(url);
+    const j = await res.json();
+    if (!res.ok || j.error) throw new Error(j.reason || 'Serwer prognoz nie odpowiedział poprawnie.');
+    render(p, j, models, r);
+  } catch (err) {
+    $('out').innerHTML = `<div class="card"><p class="err">${esc(err.message)}</p></div>`;
+  }
+}
+
+// Wykres godzinowy: słupki = średnia z modeli (mm/h), linia = rozrzut min–max, pasek = prawdopodobieństwo
+function hourChart(hours, nDays){
+  const W = 800, top = 12, bottom = 150, stripY = 160, stripH = 12, H = 200;
+  const n = hours.length, bw = W / n;
+  const maxV = Math.max(1, ...hours.map(x => isNum(x.max) ? x.max : 0));
+  const yv = v => bottom - (v / maxV) * (bottom - top);
+  const step = nDays > 8 ? 2 : 1;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Wykres godzinowych opadów">`;
+
+  for (const g of [maxV/2, maxV]) {
+    const y = yv(g).toFixed(1);
+    s += `<line class="grid" x1="0" x2="${W}" y1="${y}" y2="${y}"/>`;
+    s += `<text x="2" y="${(yv(g)-4).toFixed(1)}">${fmt(g,1)} mm/h</text>`;
+  }
+
+  hours.forEach((x, i) => {
+    const bx = i * bw;
+    const tip = `${hourLabel(x.t)}: śr. ${fmt(x.mean,2)} mm/h, zakres ${fmt(x.min,2)}–${fmt(x.max,2)}, prawd. ${fmt(x.prob)}%`;
+    if (isNum(x.mean) && x.mean > 0) {
+      const y1 = yv(x.mean);
+      s += `<rect class="bar" x="${(bx+0.5).toFixed(2)}" y="${y1.toFixed(2)}" width="${Math.max(0.8,bw-1).toFixed(2)}" height="${(bottom-y1).toFixed(2)}" rx="1.5"><title>${esc(tip)}</title></rect>`;
+    }
+    if (isNum(x.max) && x.max > 0) {
+      const cx = (bx + bw/2).toFixed(2);
+      s += `<line class="whisk" x1="${cx}" x2="${cx}" y1="${yv(x.max).toFixed(2)}" y2="${yv(x.min).toFixed(2)}"/>`;
+    }
+    if (isNum(x.prob)) {
+      const op = Math.max(0.06, x.prob / 100).toFixed(2);
+      s += `<rect x="${(bx+0.5).toFixed(2)}" y="${stripY}" width="${Math.max(0.8,bw-1).toFixed(2)}" height="${stripH}" fill="#0a84ff" fill-opacity="${op}"><title>${esc(tip)}</title></rect>`;
+    }
+  });
+
+  hours.forEach((x, i) => {
+    if (i % 24 !== 0) return;
+    const day = i / 24;
+    if (day % step !== 0) return;
+    const bx = (i * bw).toFixed(2);
+    s += `<line class="grid" x1="${bx}" x2="${bx}" y1="${top}" y2="${stripY + stripH}"/>`;
+    s += `<text x="${(i*bw+4).toFixed(2)}" y="${H-4}">${esc(dayLabel(x.t.slice(0,10)))}</text>`;
+  });
+  return s + '</svg>';
+}
+
+function render(p, j, models, r){
+  const d = j.daily, h = j.hourly;
+  const N = d.time.length;
+
+  const days = d.time.map((iso, n) => {
+    const ps = at(d, 'precipitation_sum', n, models);
+    return {
+      iso,
+      tmin: mean(at(d, 'temperature_2m_min', n, models)),
+      tmax: mean(at(d, 'temperature_2m_max', n, models)),
+      psum: mean(ps),
+      pmin: ps.length ? Math.min(...ps) : null,
+      pmax: ps.length ? Math.max(...ps) : null,
+      phrs: mean(at(d, 'precipitation_hours', n, models)),
+      pprob: mean(at(d, 'precipitation_probability_max', n, models))
+    };
+  });
+
+  const total = sum(days.map(x => x.psum));
+  const rainyDays = days.filter(x => isNum(x.psum) && x.psum >= 1).length;
+  const wettest = days.reduce((a, b) => (isNum(b.psum) && (!a || b.psum > a.psum) ? b : a), null);
+
+  const dailyRows = days.map(x => `<tr>
+      <td>${esc(dayLabel(x.iso))}</td>
+      <td>${fmt(x.tmin)}°</td>
+      <td>${fmt(x.tmax)}°</td>
+      <td><b>${fmt(x.psum,1)}</b> mm</td>
+      <td>${isNum(x.pmin) ? fmt(x.pmin,1)+'–'+fmt(x.pmax,1) : '–'}</td>
+      <td>${fmt(x.phrs,1)} h</td>
+      <td>${fmt(x.pprob)}%</td>
+      <td><span class="pill ${catPill(x.psum)}">${cat(x.psum)}</span></td>
+    </tr>`).join('');
+
+  const modelHead = models.map(m => `<th>${esc(modelName(m))}</th>`).join('');
+  const modelRows = d.time.map((iso, n) => `<tr><td>${esc(dayLabel(iso))}</td>${
+      models.map(m => `<td>${fmt(modelVal(d,'precipitation_sum',m,n),1)}</td>`).join('')
+    }</tr>`).join('');
+  const modelTotals = models.map(m => sum(d.time.map((_, n) => modelVal(d,'precipitation_sum',m,n))));
+  const modelFoot = models.map((m,k) => `<td>${fmt(modelTotals[k],1)}</td>`).join('');
+
+  const hours = h.time.map((t, i) => {
+    const pm = at(h, 'precipitation', i, models);
+    const pp = at(h, 'precipitation_probability', i, models);
+    return { t, mean: mean(pm), min: pm.length ? Math.min(...pm) : null, max: pm.length ? Math.max(...pm) : null, prob: mean(pp) };
+  });
+
+  $('out').innerHTML = `
+    <div class="card place-head">
+      <h2>${esc(p.name)}${p.admin1 ? ', ' + esc(p.admin1) : ''}</h2>
+      <p>${esc(dayLabel(r.start))} – ${esc(dayLabel(r.end))} · ${r.n} ${r.n === 1 ? 'dzień' : 'dni'} · średnia z ${models.length} ${models.length === 1 ? 'modelu' : 'modeli'}</p>
+      <div class="stats">
+        <div class="stat"><span>Suma opadów w okresie</span><b>${fmt(total,1)} mm</b></div>
+        <div class="stat"><span>Dni z opadem ≥ 1 mm</span><b>${rainyDays} z ${N}</b></div>
+        <div class="stat"><span>Najbardziej deszczowy dzień</span><b>${wettest ? fmt(wettest.psum,1)+' mm' : '–'}</b><small>${wettest ? esc(dayLabel(wettest.iso)) : ''}</small></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Prognoza dzienna</h2>
+      <div class="tbl"><table>
+        <thead><tr><th>Dzień</th><th>Min</th><th>Max</th><th>Opady</th><th>Rozrzut</th><th>Godz. z opadem</th><th>Prawd.</th><th>Natężenie</th></tr></thead>
+        <tbody>${dailyRows}</tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h2>Opady godzinowe</h2>
+      <div class="chart">${hourChart(hours, N)}</div>
+      <p class="note">Słupki: średnia z modeli (mm na godzinę). Linia: zakres min–max między modelami. Pasek pod wykresem: prawdopodobieństwo opadu, im ciemniej tym większe. Dotknij lub najedź na słupek, aby zobaczyć szczegóły.</p>
+    </div>
+
+    <div class="card">
+      <h2>Suma dobowa wg modeli (mm)</h2>
+      <div class="tbl"><table>
+        <thead><tr><th>Dzień</th>${modelHead}</tr></thead>
+        <tbody>${modelRows}</tbody>
+        <tfoot><tr><td>Suma</td>${modelFoot}</tr></tfoot>
+      </table></div>
+    </div>`;
+
+  updateMap(p);
+  $('note').textContent =
+    'Natężenie (orientacyjne progi dla dobowej sumy): brak < 0,1 mm; śladowe < 1 mm; słabe < 5 mm; umiarkowane < 10 mm; silne ≥ 10 mm. ' +
+    'Średnie to proste średnie modeli. Prawdopodobieństwo opadu nie jest podawane przez każdy model, wtedy liczona jest średnia z pozostałych. ' +
+    'Dane: Open-Meteo.com (darmowe API, użytek niekomercyjny). Mapa: © OpenStreetMap.';
+}
+
+initDates();
+</script>
+
+</body></html>
